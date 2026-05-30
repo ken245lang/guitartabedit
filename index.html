@@ -273,7 +273,118 @@
     }
 
     /* ===== 1行（4小節まとめ） ===== */
-    .score-row { margin-bottom: 56px; }
+    .score-row { position: relative; margin-bottom: 56px; }
+
+    /* ===== 範囲選択UI ===== */
+    .row-handle {
+      position: absolute;
+      left: 0; top: 14px;
+      width: 34px;
+      padding: 3px 0 4px;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #777;
+      font-family: Arial, sans-serif;
+      cursor: pointer;
+      border: 1px dashed #bbb;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.02);
+      user-select: none;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+      z-index: 4;
+    }
+    .row-handle:hover {
+      background: rgba(34,211,238,0.18);
+      color: #0892a5;
+      border-color: #22d3ee;
+    }
+    .row-handle.sel {
+      background: rgba(34,211,238,0.28);
+      color: #0a6c7a;
+      border-color: #22d3ee;
+      border-style: solid;
+    }
+    .measure.sel {
+      outline: 2px dashed #22d3ee;
+      outline-offset: -1px;
+      background: rgba(34,211,238,0.08);
+      border-radius: 3px;
+    }
+    body.tool-select .measure { cursor: pointer; }
+    body.tool-select .measure:hover { background: rgba(34,211,238,0.05); }
+
+    /* ===== 転調モーダル ===== */
+    #transpose-modal {
+      display: none; position: fixed; z-index: 2000;
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: linear-gradient(180deg, #1a1f3a 0%, #131628 100%);
+      border: 1px solid var(--line-strong);
+      border-radius: 14px;
+      padding: 18px 22px;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.06) inset,
+        0 20px 60px rgba(0,0,0,0.55),
+        0 4px 16px rgba(0,0,0,0.35);
+      min-width: 360px;
+    }
+    #transpose-modal h3 {
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 14px;
+      background: var(--grad-accent);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    #transpose-modal .tr-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px; font-size: 13px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--line);
+    }
+    #transpose-modal .tr-row label {
+      color: var(--text-dim); font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em; min-width: 60px;
+    }
+    #transpose-modal .tr-semi {
+      display: flex; align-items: center; gap: 6px;
+      margin-left: auto;
+    }
+    #transpose-modal .tr-semi input { width: 56px; text-align: center; font-size: 14px; font-weight: 700; }
+    #transpose-modal .tr-semi button { padding: 4px 10px; }
+    #transpose-modal .tr-note {
+      font-size: 11px; color: var(--text-dim); line-height: 1.6;
+      padding: 8px 10px;
+      background: rgba(34, 211, 238, 0.07);
+      border-left: 3px solid var(--accent-2);
+      border-radius: 4px;
+      margin: 6px 0 12px;
+    }
+    #transpose-modal .btns {
+      display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; flex-wrap: wrap;
+    }
+    #transpose-modal .btn-apply-capo {
+      background: var(--grad-accent);
+      border-color: transparent; color: #fff; font-weight: 700;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+    #transpose-modal .btn-apply-data {
+      background: linear-gradient(135deg, #f4b41b 0%, #e07b00 100%);
+      border-color: transparent; color: #fff; font-weight: 700;
+    }
+    #capo-badge {
+      display: none;
+      padding: 3px 9px;
+      border-radius: 12px;
+      background: var(--grad-accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+    #capo-badge.on { display: inline-block; }
 
     .measures-wrap {
       display: grid;
@@ -754,6 +865,23 @@
     <button id="btn-tool-fret" class="active" onclick="setTool('fret')">数字入力</button>
     <button id="btn-tool-chord" onclick="setTool('chord')">コード配置</button>
     <button id="btn-tool-erase" onclick="setTool('erase')">消去</button>
+    <button id="btn-tool-select" onclick="setTool('select')">範囲選択</button>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="ctrl-group">
+    <span class="ctrl-label">編集:</span>
+    <button id="btn-copy" onclick="copySelection()" title="選択範囲をコピー (Ctrl+C)">📋 コピー</button>
+    <button id="btn-paste" onclick="pasteSelection()" title="選択位置に貼り付け (Ctrl+V)">📥 貼り付け</button>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="ctrl-group">
+    <span class="ctrl-label">転調:</span>
+    <button onclick="openTranspose()" title="転調・カポ設定">🎵 転調</button>
+    <span id="capo-badge" title="クリックでカポ解除" onclick="setCapo(0)">Capo 0</span>
   </div>
 
   <div class="sep"></div>
@@ -2184,7 +2312,39 @@
 </html>
 </script>
 
-<div id="color-settings-backdrop" onclick="closeColorSettings(); closeNotice(); closeManual();"></div>
+<div id="color-settings-backdrop" onclick="closeColorSettings(); closeNotice(); closeManual(); closeTranspose();"></div>
+
+<div id="transpose-modal">
+  <h3>🎵 転調 / カポ設定</h3>
+
+  <div class="tr-row">
+    <label>半音</label>
+    <div class="tr-semi">
+      <button onclick="changeTransposeAmount(-1)">−</button>
+      <input type="number" id="tr-semi-input" value="0" min="-12" max="12" oninput="onTransposeAmountInput()">
+      <button onclick="changeTransposeAmount(1)">＋</button>
+    </div>
+  </div>
+
+  <div class="tr-row">
+    <label>キー</label>
+    <select id="tr-from" onchange="onTransposeKeyChange()"></select>
+    <span style="color:var(--text-dim)">→</span>
+    <select id="tr-to" onchange="onTransposeKeyChange()"></select>
+  </div>
+
+  <div class="tr-note">
+    <strong>🎸 カポ方式</strong>：データは変更せず、コード名表示と再生音だけを N 半音上げます。フレット番号と運指は元のまま。<br>
+    <strong>📝 データ書き換え</strong>：全フレット番号とコード名を実際に書き換えます。範囲外(0-24)はクランプ。
+  </div>
+
+  <div class="btns">
+    <button onclick="closeTranspose()">キャンセル</button>
+    <button onclick="resetTranspose()">カポ解除</button>
+    <button class="btn-apply-data" onclick="applyTransposeData()">📝 データ書き換え</button>
+    <button class="btn-apply-capo" onclick="applyTransposeCapo()">🎸 カポ適用</button>
+  </div>
+</div>
 
 <div id="manual-modal">
   <div class="mm-head">
@@ -2198,6 +2358,8 @@
       <a href="#m-views">ビュー切替</a>
       <a href="#m-tabedit">タブ譜エディタ</a>
       <a href="#m-tools">ツール</a>
+      <a href="#m-copy">範囲選択・コピペ</a>
+      <a href="#m-transpose">転調・カポ</a>
       <a href="#m-chord">コード配置</a>
       <a href="#m-color">彩色・色設定</a>
       <a href="#m-play">再生</a>
@@ -2239,8 +2401,83 @@
       <li><strong>数字入力</strong>: タブセルをクリック → ポップアップで <code>0〜24</code> を入力 → <kbd>OK</kbd> または <kbd>Enter</kbd>。空欄で <kbd>OK</kbd> すると消去</li>
       <li><strong>コード配置</strong>: 下部の「コード選択バー」で組んだコードを、コード行のセルにクリックで配置</li>
       <li><strong>消去</strong>: タブの数字 / 配置済みコード名をクリックして削除</li>
+      <li><strong>範囲選択</strong>: 小節をクリックして選択開始。<kbd>Shift</kbd>+クリックで矩形範囲（複数行×複数小節）に拡張</li>
     </ul>
     <div class="mm-tip">💡 タブの数字をクリックすると（ツールに関係なく）その音が鳴って試聴できます。</div>
+
+    <h4 id="m-copy">📋 範囲選択・コピー＆ペースト</h4>
+    <p>同じフレーズの繰り返し（A→A'、サビの反復など）を効率よく入力するための機能です。小節データ（タブの数字＋コード）をまとめて複製できます。</p>
+    <h5>範囲を選ぶ</h5>
+    <ul>
+      <li><strong>小節単位</strong>: ツールを <kbd>範囲選択</kbd> に切替 → 小節をクリック → 別の小節を <kbd>Shift</kbd>+クリックで矩形範囲に拡張</li>
+      <li><strong>行単位</strong>: 各行の左にある <kbd>#1</kbd> <kbd>#2</kbd> … の <strong>行ハンドル</strong> をクリック（ツールに関係なくいつでも使用可）。<kbd>Shift</kbd>+クリックで複数行に拡張</li>
+      <li>選択中の小節は水色の点線枠で表示されます</li>
+    </ul>
+    <h5>コピー＆ペースト</h5>
+    <ol>
+      <li>範囲を選択</li>
+      <li><kbd>📋 コピー</kbd> ボタン または <kbd>Ctrl</kbd>+<kbd>C</kbd></li>
+      <li>貼り付け先の<strong>開始小節</strong>を範囲選択（1小節クリックでOK）</li>
+      <li><kbd>📥 貼り付け</kbd> ボタン または <kbd>Ctrl</kbd>+<kbd>V</kbd></li>
+    </ol>
+    <h5>動作のポイント</h5>
+    <ul>
+      <li>貼り付けは <strong>選択範囲の左上を起点</strong> に、コピーした矩形の形そのままで配置されます</li>
+      <li>貼り付け先で行数が足りない場合は <strong>自動的に行が追加</strong> されます</li>
+      <li>1行の右端（4小節目）を超える列はクリップされます</li>
+      <li>貼り付け先の既存データは <strong>上書き</strong> されます（部分マージはしません）</li>
+      <li><kbd>Esc</kbd> で選択を解除</li>
+      <li>クリップボードはアプリ内専用です（OSのクリップボードとは独立）。ページを再読み込みすると消えます</li>
+    </ul>
+    <div class="mm-tip">💡 入力欄（行数 / BPM など）にフォーカスがあるときは <kbd>Ctrl</kbd>+<kbd>C/V</kbd> は通常のテキスト操作として動きます。譜面コピペには譜面エリア側にフォーカスがある状態で押してください。</div>
+
+    <h4 id="m-transpose">🎵 転調 / カポ</h4>
+    <p>ヘッダーの <kbd>🎵 転調</kbd> から、半音単位またはキー指定で曲全体を転調できます。「カポ方式」と「データ書き換え方式」の2つから選べます。</p>
+
+    <h5>転調量の指定</h5>
+    <ul>
+      <li><strong>半音</strong>: <kbd>−</kbd> <kbd>＋</kbd> ボタンか直接入力で −12〜+12 半音</li>
+      <li><strong>キー</strong>: 「現在のキー → 転調先キー」のドロップダウンで指定すると半音数が自動計算されます（最短方向で正規化、±6半音以内）</li>
+      <li>どちらを操作してももう一方が連動して更新されます</li>
+    </ul>
+
+    <h5>🎸 カポ方式（推奨：表示のみ）</h5>
+    <p>譜面データは一切変更せず、<strong>コード名の表示と再生音だけ</strong>を N 半音上げます。フレット番号と運指は元のまま。</p>
+    <ul>
+      <li>例: C キーの曲に <kbd>カポ +2</kbd> を適用 → コード名は D / Em / G / A … と表示。フレット番号は変わらず、再生は2半音上で鳴る</li>
+      <li>ヘッダーに <strong>Capo +N</strong> バッジが表示されます。バッジをクリックでカポ解除</li>
+      <li>カポ値は保存ファイル（.json）にも保持されます</li>
+      <li>譜面エディタ上で新規にコードを配置するときは <strong>元キー（カポ無し相当）</strong> のコード名で入力してください。表示は自動でカポ分シフトされます</li>
+    </ul>
+
+    <h5>📝 データ書き換え方式</h5>
+    <p>全フレット番号とコード名を <strong>実際に書き換え</strong> ます。譜面そのものを別キーに作り変えたい場合に使います。</p>
+    <ul>
+      <li>全フレットに半音数を加算（例: +2なら 3F → 5F）</li>
+      <li>0〜24 フレット範囲外になる音がある場合は事前に警告。続行するとクランプされます（0未満→0、25以上→24）</li>
+      <li>元に戻したい場合は逆方向（−N）で再度適用</li>
+      <li><strong>Undo はありません</strong>。実行前に保存しておくと安全です</li>
+    </ul>
+
+    <div class="mm-warn">⚠ カポ方式とデータ書き換え方式は併用可能ですが、混在すると混乱しがちです。基本はどちらか一方に統一して使うのがおすすめです。</div>
+    <div class="mm-tip">💡 弾き語りや合奏でキー変更が必要なときは「カポ方式」、ソロギターで別キーの譜面を作りたいときは「データ書き換え方式」が向いています。</div>
+
+    <h5>フレット番号の転調について（補足）</h5>
+    <p>「コードは転調できても数字（フレット番号）は難しいのでは？」と思われがちですが、内部処理はシンプルです:</p>
+    <ul>
+      <li><strong>カポ方式</strong>: フレット番号は触らず、再生時に <code>fret + capo</code> として発音。<strong>同じ運指のまま音だけ上がる</strong>ので、譜面の数字を読み替える必要がありません</li>
+      <li><strong>データ書き換え方式</strong>: 全フレットに +N を加算するだけ。<strong>同じ弦のままポジションが動く</strong>ので、運指の形は概ねそのまま使えます（高フレットすぎると弾きづらくなる場合あり）</li>
+    </ul>
+    <p>本アプリでは<strong>「弦をまたいで同じポジションに収める」自動最適化は行いません</strong>。自動で弦移動すると音色（弦のキャラクター）が変わり、和声バランスも崩れやすいためです。ポジションを動かしたい場合は転調後に手動で編集する想定です。</p>
+    <div class="mm-tip">💡 +N後に数本だけ24フレットを超えたなど局所的に困ったときは、<strong>範囲選択＋コピペ</strong>で他の場所のフレーズを流用したり、その小節だけ手作業で1オクターブ下げる（−12）と素早く整えられます。</div>
+
+    <h5>ユースケース別の選び方</h5>
+    <ul>
+      <li><strong>弾き語り・歌の伴奏でキーを上下したい</strong> → カポ方式（実際にカポを付ければそのまま使える）</li>
+      <li><strong>セッションで「半音上げて」と言われた</strong> → カポ方式（即時切替、データを汚さない）</li>
+      <li><strong>原曲のキーが弾きにくい / 別キーで譜面を仕上げたい</strong> → データ書き換え方式</li>
+      <li><strong>とりあえず色々試したい</strong> → カポ方式で確認 → 確定したらデータ書き換え方式</li>
+    </ul>
 
     <h4 id="m-chord">🎼 コード選択バーの使い方</h4>
     <p>2行目バーで「コード」「変音」「オンベース」「タイプ」を組み合わせて構築します。右端の「選択中」が現在のコード名です。</p>
@@ -2540,6 +2777,9 @@ const app = {
   pending: null,
   score: [],
   playFrom: { row: 0, measure: 0, div: 0 },
+  selection: null,   // {sr, sm, er, em} 矩形範囲（小節単位、両端含む）
+  clipboard: null,   // {rows, cols, cells: [[measure,...], ...]}
+  capo: 0,           // カポ位置（半音数 -12..+12）。表示と再生のみシフト、データは元のまま。
 };
 
 // ============================================================
@@ -2794,6 +3034,20 @@ function renderRow(rowIdx) {
   const rowEl = document.createElement('div');
   rowEl.className = 'score-row';
 
+  // ── 行ハンドル（クリックで行選択） ──
+  const handle = document.createElement('div');
+  handle.className = 'row-handle';
+  const sel = normSel(app.selection);
+  const rowFullySelected = sel && sel.sr <= rowIdx && sel.er >= rowIdx && sel.sm === 0 && sel.em === 3;
+  if (rowFullySelected) handle.classList.add('sel');
+  handle.textContent = '#' + (rowIdx + 1);
+  handle.title = 'クリックでこの行を選択 / Shift+クリックで範囲拡張';
+  handle.addEventListener('click', e => {
+    e.stopPropagation();
+    setRowAnchor(rowIdx, e.shiftKey);
+  });
+  rowEl.appendChild(handle);
+
   // ── 再生開始位置バー ──
   const posBar = document.createElement('div');
   posBar.className = 'pos-bar';
@@ -2841,6 +3095,15 @@ function renderMeasure(rowIdx, mIdx, isFirst) {
   const ms = app.score[rowIdx][mIdx];
   const el = document.createElement('div');
   el.className = 'measure';
+  if (isMeasureSelected(rowIdx, mIdx)) el.classList.add('sel');
+
+  // 範囲選択ツール時は、内部セルより先にキャプチャ段階で選択を実行
+  el.addEventListener('click', e => {
+    if (app.tool !== 'select') return;
+    e.stopPropagation();
+    e.preventDefault();
+    setMeasureAnchor(rowIdx, mIdx, e.shiftKey);
+  }, true);
 
   // コード行
   const chordRow = document.createElement('div');
@@ -2864,7 +3127,7 @@ function renderMeasure(rowIdx, mIdx, isFirst) {
     if (entry) {
       const lbl = document.createElement('span');
       lbl.className = 'chord-cell-label';
-      lbl.textContent = entry.name;
+      lbl.textContent = displayChordName(entry.name);
       lbl.addEventListener('click', e => {
         e.stopPropagation();
         if (app.tool === 'erase') {
@@ -2949,7 +3212,7 @@ function renderMeasure(rowIdx, mIdx, isFirst) {
           showFretPopup(cell, fret);
         }
         if (fret !== undefined) {
-          playNote(s, fret, getAudioCtx().currentTime, 1.8);
+          playNote(s, fret + app.capo, getAudioCtx().currentTime, 1.8);
         }
       });
 
@@ -3015,10 +3278,247 @@ document.addEventListener('click', e => {
 // ============================================================
 function setTool(tool) {
   app.tool = tool;
-  ['fret','chord','erase'].forEach(t => {
-    document.getElementById('btn-tool-'+t).classList.toggle('active', t === tool);
+  ['fret','chord','erase','select'].forEach(t => {
+    const b = document.getElementById('btn-tool-'+t);
+    if (b) b.classList.toggle('active', t === tool);
   });
+  document.body.classList.toggle('tool-select', tool === 'select');
   render();
+}
+
+// ============================================================
+// 範囲選択 / コピー / 貼り付け
+// ============================================================
+function normSel(s) {
+  if (!s) return null;
+  return {
+    sr: Math.min(s.sr, s.er), er: Math.max(s.sr, s.er),
+    sm: Math.min(s.sm, s.em), em: Math.max(s.sm, s.em),
+  };
+}
+function isMeasureSelected(r, m) {
+  const s = normSel(app.selection);
+  return !!(s && r >= s.sr && r <= s.er && m >= s.sm && m <= s.em);
+}
+function setMeasureAnchor(r, m, extend) {
+  if (extend && app.selection) {
+    app.selection.er = r;
+    app.selection.em = m;
+  } else {
+    app.selection = { sr: r, sm: m, er: r, em: m };
+  }
+  render();
+}
+function setRowAnchor(r, extend) {
+  if (extend && app.selection) {
+    app.selection.er = r;
+    app.selection.sm = 0;
+    app.selection.em = 3;
+  } else {
+    app.selection = { sr: r, sm: 0, er: r, em: 3 };
+  }
+  render();
+}
+function clearSelection() {
+  if (!app.selection) return;
+  app.selection = null;
+  render();
+}
+function copySelection() {
+  const s = normSel(app.selection);
+  if (!s) { alert('範囲を選択してください（範囲選択ツール or 行ハンドルから）'); return; }
+  const cells = [];
+  for (let r = s.sr; r <= s.er; r++) {
+    const row = [];
+    for (let m = s.sm; m <= s.em; m++) {
+      row.push(JSON.parse(JSON.stringify(app.score[r][m])));
+    }
+    cells.push(row);
+  }
+  app.clipboard = { rows: cells.length, cols: cells[0].length, cells };
+}
+function pasteSelection() {
+  if (!app.clipboard) { alert('まずコピーしてください'); return; }
+  const s = normSel(app.selection);
+  if (!s) { alert('貼り付け開始位置を範囲選択してください'); return; }
+  const { rows, cols, cells } = app.clipboard;
+  const targetRowEnd = s.sr + rows - 1;
+  if (app.rows <= targetRowEnd) {
+    app.rows = targetRowEnd + 1;
+    document.getElementById('inp-rows').value = app.rows;
+    ensureScore();
+  }
+  for (let dr = 0; dr < rows; dr++) {
+    for (let dc = 0; dc < cols; dc++) {
+      const tc = s.sm + dc;
+      if (tc > 3) continue; // 1行は4小節まで
+      app.score[s.sr + dr][tc] = JSON.parse(JSON.stringify(cells[dr][dc]));
+    }
+  }
+  app.selection = {
+    sr: s.sr, sm: s.sm,
+    er: targetRowEnd,
+    em: Math.min(3, s.sm + cols - 1),
+  };
+  render();
+}
+
+// キーボードショートカット
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (t && t.matches && t.matches('input, select, textarea, [contenteditable=true]')) return;
+  if (e.key === 'Escape') { clearSelection(); return; }
+  const ctrl = e.ctrlKey || e.metaKey;
+  if (!ctrl) return;
+  const k = (e.key || '').toLowerCase();
+  if (k === 'c') {
+    if (app.selection) { copySelection(); e.preventDefault(); }
+  } else if (k === 'v') {
+    if (app.clipboard && app.selection) { pasteSelection(); e.preventDefault(); }
+  }
+});
+
+// ============================================================
+// 転調（カポ方式 / データ書き換え方式）
+// ============================================================
+const SHARP_NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const SHARP_TO_FLAT = {'C#':'Db','D#':'Eb','F#':'Gb','G#':'Ab','A#':'Bb'};
+const ALL_KEYS = ['C','C#/Db','D','D#/Eb','E','F','F#/Gb','G','G#/Ab','A','A#/Bb','B'];
+
+function transposeNote(noteName, semitones) {
+  if (!noteName) return noteName;
+  const n = NOTE_TO_NUM[noteName];
+  if (n === undefined) return noteName;
+  const useFlat = noteName.length >= 2 && noteName[1] === 'b';
+  const newN = ((n + semitones) % 12 + 12) % 12;
+  let newName = SHARP_NOTES[newN];
+  if (useFlat && SHARP_TO_FLAT[newName]) newName = SHARP_TO_FLAT[newName];
+  return newName;
+}
+
+function transposeChordName(name, semitones) {
+  if (!name || semitones === 0) return name;
+  const { base, bassName } = parseChord(name);
+  if (!base) return name;
+  // base = ルート音(1〜2文字) + サフィックス
+  let prefixLen = 1;
+  if (base.length >= 2 && (base[1] === '#' || base[1] === 'b')) prefixLen = 2;
+  const rootStr = base.substring(0, prefixLen);
+  const suffix  = base.substring(prefixLen);
+  const newRoot = transposeNote(rootStr, semitones);
+  const newBase = newRoot + suffix;
+  if (!bassName) return newBase;
+  return newBase + '/' + transposeNote(bassName, semitones);
+}
+
+function displayChordName(name) {
+  return transposeChordName(name, app.capo);
+}
+
+function setCapo(n) {
+  app.capo = Math.max(-12, Math.min(12, n | 0));
+  const badge = document.getElementById('capo-badge');
+  if (badge) {
+    badge.classList.toggle('on', app.capo !== 0);
+    badge.textContent = app.capo === 0 ? 'Capo 0'
+      : (app.capo > 0 ? `Capo +${app.capo}` : `Capo ${app.capo}`);
+  }
+  render();
+}
+
+function applyDataShift(semitones) {
+  if (!semitones) return;
+  // 事前チェック
+  let oob = 0, total = 0;
+  for (const row of app.score) for (const ms of row) {
+    for (const divMap of Object.values(ms.notes || {})) {
+      for (const fret of Object.values(divMap)) {
+        total++;
+        const nf = fret + semitones;
+        if (nf < 0 || nf > 24) oob++;
+      }
+    }
+  }
+  if (oob > 0) {
+    const msg = `${oob}/${total} 個の音が0-24フレット範囲外になります。\n範囲外は0または24にクランプされます。続行しますか？`;
+    if (!confirm(msg)) return;
+  }
+  for (const row of app.score) for (const ms of row) {
+    for (const divMap of Object.values(ms.notes || {})) {
+      for (const k of Object.keys(divMap)) {
+        const nf = Math.max(0, Math.min(24, divMap[k] + semitones));
+        divMap[k] = nf;
+      }
+    }
+    for (const k of Object.keys(ms.chords || {})) {
+      ms.chords[k] = transposeChordName(ms.chords[k], semitones);
+    }
+  }
+  render();
+}
+
+// 転調モーダル UI
+function openTranspose() {
+  // キー選択 dropdown を一度だけ初期化
+  const from = document.getElementById('tr-from');
+  const to   = document.getElementById('tr-to');
+  if (from.options.length === 0) {
+    ALL_KEYS.forEach((k, i) => {
+      from.add(new Option(k, i));
+      to.add(new Option(k, i));
+    });
+  }
+  document.getElementById('tr-semi-input').value = 0;
+  from.value = 0;
+  to.value = 0;
+  document.getElementById('color-settings-backdrop').style.display = 'block';
+  document.getElementById('transpose-modal').style.display = 'block';
+}
+function closeTranspose() {
+  document.getElementById('color-settings-backdrop').style.display = 'none';
+  document.getElementById('transpose-modal').style.display = 'none';
+}
+function getTransposeAmount() {
+  const v = parseInt(document.getElementById('tr-semi-input').value, 10);
+  if (isNaN(v)) return 0;
+  return Math.max(-12, Math.min(12, v));
+}
+function setTransposeAmount(n) {
+  document.getElementById('tr-semi-input').value = n;
+  // キー dropdown も追従
+  const from = parseInt(document.getElementById('tr-from').value, 10) || 0;
+  const to = ((from + n) % 12 + 12) % 12;
+  document.getElementById('tr-to').value = to;
+}
+function changeTransposeAmount(d) {
+  setTransposeAmount(Math.max(-12, Math.min(12, getTransposeAmount() + d)));
+}
+function onTransposeAmountInput() {
+  setTransposeAmount(getTransposeAmount());
+}
+function onTransposeKeyChange() {
+  const from = parseInt(document.getElementById('tr-from').value, 10) || 0;
+  const to   = parseInt(document.getElementById('tr-to').value, 10)   || 0;
+  let diff = to - from;
+  // -6..+6 の範囲に正規化
+  if (diff >  6) diff -= 12;
+  if (diff < -6) diff += 12;
+  document.getElementById('tr-semi-input').value = diff;
+}
+function applyTransposeCapo() {
+  const n = getTransposeAmount();
+  setCapo(app.capo + n);
+  closeTranspose();
+}
+function applyTransposeData() {
+  const n = getTransposeAmount();
+  if (n === 0) { closeTranspose(); return; }
+  applyDataShift(n);
+  closeTranspose();
+}
+function resetTranspose() {
+  setCapo(0);
+  setTransposeAmount(0);
 }
 
 function setColorMode(mode) {
@@ -3164,7 +3664,7 @@ function saveFile() {
   if (input === null) return;
   const name = (input.trim() || defaultName).replace(/\.json$/i, '');
 
-  const data = { version: 1, rows: app.rows, divisions: app.divisions, score: app.score };
+  const data = { version: 1, rows: app.rows, divisions: app.divisions, capo: app.capo, score: app.score };
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -3187,7 +3687,7 @@ function loadFile(input) {
       app.score = data.score;
       document.getElementById('inp-rows').value = app.rows;
       document.getElementById('inp-div').value = app.divisions;
-      render();
+      setCapo(typeof data.capo === 'number' ? data.capo : 0);
     } catch (err) {
       alert('読み込み失敗: ' + err.message);
     }
@@ -3325,7 +3825,7 @@ function playScore() {
 
         for (let s = 0; s < 6; s++) {
           const fret = getNote(r, m, s, d);
-          if (fret !== undefined) playNote(s, fret, t, fadeDur, playbackMaster);
+          if (fret !== undefined) playNote(s, fret + app.capo, t, fadeDur, playbackMaster);
         }
 
         const _r = r, _m = m, _d = d;
